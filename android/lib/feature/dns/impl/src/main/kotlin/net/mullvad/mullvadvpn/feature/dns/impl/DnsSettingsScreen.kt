@@ -570,11 +570,13 @@ private fun LazyItemScope.ContentBlockers(
         isEnabled = contentBlockersEnabled,
         onClicked = onToggleBlockGambling,
     )
+    // The adult content blocker is mandatory: it is always shown as on and the
+    // switch is disabled, so it cannot be switched off from the app.
     ContentBlocker(
         title = stringResource(R.string.block_adult_content_title),
-        isToggled = defaultDnsOptions.blockAdultContent,
-        isEnabled = contentBlockersEnabled,
-        onClicked = onToggleBlockAdultContent,
+        isToggled = true,
+        isEnabled = false,
+        onClicked = { onToggleBlockAdultContent(true) },
     )
     ContentBlocker(
         title = stringResource(R.string.block_social_media_title),

@@ -50,7 +50,9 @@ android {
     ndkVersion = libs.versions.ndk.get()
 
     defaultConfig {
-        applicationId = "net.mullvad.mullvadvpn"
+        // Changed from "net.mullvad.mullvadvpn" so this build installs side by side
+        // with the official Mullvad VPN app instead of replacing it.
+        applicationId = "net.mullvad.mullvadvpn.pornblock"
         minSdk = libs.versions.min.sdk.get().toInt()
         targetSdk = libs.versions.target.sdk.get().toInt()
         versionCode = appVersion.code

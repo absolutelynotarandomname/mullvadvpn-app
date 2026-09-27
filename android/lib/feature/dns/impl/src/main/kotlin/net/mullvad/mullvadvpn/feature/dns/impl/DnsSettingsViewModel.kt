@@ -64,7 +64,10 @@ class DnsSettingsViewModel(
                     DnsSettingsUiState(
                         isModal = isModal,
                         contentBlockersEnabled = !settings.isCustomDnsEnabled(),
-                        defaultDnsOptions = settings.contentBlockersSettings(),
+                        // The adult content blocker is mandatory, so it is reported as
+                        // always on regardless of what is stored.
+                        defaultDnsOptions =
+                            settings.contentBlockersSettings().copy(blockAdultContent = true),
                         customDnsEnabled = settings.isCustomDnsEnabled(),
                         customDnsEntries = settings.customDnsAddresses().asStringAddressList(),
                         showUnreachableLocalDnsWarning = !settings.allowLan,
@@ -83,7 +86,8 @@ class DnsSettingsViewModel(
             blockAds = isEnabled,
             blockTrackers = isEnabled,
             blockMalware = isEnabled,
-            blockAdultContent = isEnabled,
+            // Mandatory, cannot be turned off by the master toggle either.
+            blockAdultContent = true,
             blockGambling = isEnabled,
             blockSocialMedia = isEnabled,
         )
@@ -101,9 +105,9 @@ class DnsSettingsViewModel(
         it.copy(blockMalware = isEnabled)
     }
 
-    fun onToggleBlockAdultContent(isEnabled: Boolean) = updateContentBlockersAndNotify {
-        it.copy(blockAdultContent = isEnabled)
-    }
+    /** The adult content blocker cannot be disabled, so this always turns it back on. */
+    fun onToggleBlockAdultContent(@Suppress("UNUSED_PARAMETER") isEnabled: Boolean) =
+        updateContentBlockersAndNotify { it.copy(blockAdultContent = true) }
 
     fun onToggleBlockGambling(isEnabled: Boolean) = updateContentBlockersAndNotify {
         it.copy(blockGambling = isEnabled)

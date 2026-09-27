@@ -21,7 +21,10 @@ pub fn addresses_from_options(options: &DnsOptions) -> DnsConfig {
         DnsState::Default => {
             // Check if we should use a custom blocking DNS resolver.
             // And if so, compute the IP.
-            let mut last_byte: u8 = 0;
+            // The adult content blocklist is mandatory: its bit is always set, so the
+            // resolver can never be requested without it, regardless of the stored
+            // settings or anything the UI or a gRPC client sends us.
+            let mut last_byte: u8 = DNS_ADULT_BLOCKING_IP_BIT;
 
             if options.default_options.block_ads {
                 last_byte |= DNS_AD_BLOCKING_IP_BIT;
@@ -78,7 +81,12 @@ mod test {
             default_options: DefaultDnsOptions::default(),
         };
 
-        assert_eq!(addresses_from_options(&public_cfg), DnsConfig::default());
+        // Even with every optional blocker disabled, the mandatory adult content
+        // blocklist is still requested from the filtering resolver.
+        assert_eq!(
+            addresses_from_options(&public_cfg),
+            DnsConfig::from_addresses(&["100.64.0.8".parse().unwrap()], &[],)
+        );
     }
 
     #[test]
@@ -92,10 +100,50 @@ mod test {
             },
         };
 
+        // ads (0b00000001) | adult (0b00001000) = 0b00001001
         assert_eq!(
             addresses_from_options(&public_cfg),
-            DnsConfig::from_addresses(&["100.64.0.1".parse().unwrap()], &[],)
+            DnsConfig::from_addresses(&["100.64.0.9".parse().unwrap()], &[],)
         );
+    }
+
+    /// The adult content blocklist is mandatory and must survive every combination of
+    /// the optional blockers, including an explicit attempt to disable it.
+    #[test]
+    fn test_adult_content_blocker_cannot_be_disabled() {
+        let everything_else_enabled = DnsOptions {
+            state: DnsState::Default,
+            custom_options: CustomDnsOptions::default(),
+            default_options: DefaultDnsOptions {
+                block_ads: true,
+                block_trackers: true,
+                block_malware: true,
+                // Explicitly asking for it to be off must have no effect.
+                block_adult_content: false,
+                block_gambling: true,
+                block_social_media: true,
+            },
+        };
+
+        for options in [everything_else_enabled, DnsOptions::default()] {
+            let config = addresses_from_options(&options);
+            let tunnel_config = config.tunnel_config();
+
+            assert_eq!(
+                tunnel_config.len(),
+                1,
+                "expected a single blocking resolver"
+            );
+            let octets = tunnel_config[0]
+                .to_ipv4()
+                .expect("blocking resolver is IPv4")
+                .octets();
+            assert_eq!(
+                octets[3] & 0b0000_1000,
+                0b0000_1000,
+                "adult content bit missing from resolver {octets:?}"
+            );
+        }
     }
 
     // Public IPs should be tunneled, but most private IPs should not be

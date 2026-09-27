@@ -50,6 +50,9 @@ jobs:
           curl -sfLo /tmp/ndk.zip \
             https://dl.google.com/android/repository/android-ndk-r27d-linux.zip
           unzip -q /tmp/ndk.zip -d /tmp/
+          # The parent of NDK_DIR must exist, and the extracted directory is
+          # moved *into place as* NDK_DIR (same as the official Dockerfile).
+          mkdir -p "$SDK_ROOT/ndk"
           mv /tmp/android-ndk-r27d "$NDK_DIR"
           rm -rf "$NDK_DIR/sources" /tmp/ndk.zip /tmp/cmdline-tools.zip
           df -h /

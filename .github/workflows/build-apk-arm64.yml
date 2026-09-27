@@ -125,6 +125,8 @@ jobs:
       - name: Publish as release
         env:
           REPO: ${{ github.repository }}
+          # gh refuses to run inside Actions without an explicit token.
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           tag="pornblock-${{ github.run_number }}"

@@ -57,6 +57,20 @@ jobs:
           rm -rf "$NDK_DIR/sources" /tmp/ndk.zip /tmp/cmdline-tools.zip
           df -h /
 
+      # prost-build (tonic) shells out to protoc for the daemon's gRPC code.
+      # The official container gets this from its base image, so it is easy to
+      # miss. Protos here are plain proto3, no editions.
+      - name: Install protoc
+        run: |
+          set -eu
+          curl -sfLo /tmp/protoc.zip \
+            https://github.com/protocolbuffers/protobuf/releases/download/v29.3/protoc-29.3-linux-x86_64.zip
+          unzip -q /tmp/protoc.zip -d "$HOME/protoc"
+          echo "$HOME/protoc/bin" >> "$GITHUB_PATH"
+          echo "PROTOC=$HOME/protoc/bin/protoc" >> "$GITHUB_ENV"
+          rm -f /tmp/protoc.zip
+          "$HOME/protoc/bin/protoc" --version
+
       # Official rustup rather than a third-party action. The repo's
       # rust-toolchain.toml pins 1.97.1, which rustup honours automatically.
       - name: Install Rust

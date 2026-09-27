@@ -28,14 +28,17 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Install Android SDK and NDK
         run: |
-          set -euo pipefail
+          # No pipefail on purpose: "yes | sdkmanager" kills "yes" with SIGPIPE
+          # once sdkmanager finishes, and pipefail turns that into a false
+          # failure. The official Dockerfile does the same without pipefail.
+          set -eu
           mkdir -p "$SDK_ROOT/cmdline-tools"
           curl -sfLo /tmp/cmdline-tools.zip \
             https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
@@ -55,9 +58,12 @@ jobs:
       # rust-toolchain.toml pins 1.97.1, which rustup honours automatically.
       - name: Install Rust
         run: |
-          set -euo pipefail
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-            | sh -s -- -y --default-toolchain none
+          set -eu
+          # Download to a file first: "curl | sh" can leave curl with SIGPIPE
+          # once the installer is done reading, which pipefail would report
+          # as a failure.
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh
+          sh /tmp/rustup.sh -y --default-toolchain none
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
           rustup target add aarch64-linux-android
 
